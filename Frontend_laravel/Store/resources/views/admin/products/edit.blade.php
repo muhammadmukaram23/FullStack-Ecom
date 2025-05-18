@@ -89,12 +89,15 @@
                 <label for="new_images" class="block text-gray-700 font-medium mb-2">Add More Images</label>
                 <input type="file" id="new_images" name="new_images[]" multiple 
                     class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 @error('new_images') border-red-500 @enderror"
-                    accept="image/*">
+                    accept="image/jpeg,image/png,image/jpg,image/gif,image/webp">
                 
                 @error('new_images')
                     <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                 @enderror
-                <p class="text-gray-500 text-sm mt-1">You can select multiple images to add</p>
+                @error('new_images.*')
+                    <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                @enderror
+                <p class="text-gray-500 text-sm mt-1">You can select multiple images to add (JPG, PNG, GIF, WebP)</p>
             </div>
             
             <div class="flex items-center justify-end">

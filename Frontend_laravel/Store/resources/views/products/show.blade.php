@@ -25,7 +25,7 @@
                     <!-- Product Images -->
                     <div class="p-6 md:border-r border-gray-100">
                         <div class="mb-4 border rounded-lg overflow-hidden bg-gray-50 flex items-center justify-center h-96">
-                            @if(isset($images) && count($images) > 0)
+                            @if(isset($images) && is_array($images) && count($images) > 0)
                                 <img id="main-product-image" src="{{ $images[0]['image_url'] }}" alt="{{ $product['product_name'] }}" class="max-w-full max-h-full object-contain p-4">
                             @else
                                 <img src="https://via.placeholder.com/600x400" alt="{{ $product['product_name'] }}" class="max-w-full max-h-full object-contain p-4">
@@ -33,7 +33,7 @@
                         </div>
                         
                         <!-- Image Thumbnails -->
-                        @if(isset($images) && count($images) > 0)
+                        @if(isset($images) && is_array($images) && count($images) > 0)
                             <div class="grid grid-cols-5 gap-2">
                                 @foreach($images as $index => $image)
                                     <div class="border rounded cursor-pointer hover:border-primary-600 thumbnail-image p-1 bg-white transition duration-200" data-image-url="{{ $image['image_url'] }}">
@@ -100,13 +100,7 @@
                             </div>
                             
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <button type="submit" class="bg-primary-600 hover:bg-primary-700 text-white font-medium py-3 px-6 rounded-md transition flex items-center justify-center">
-                                    <i class="fas fa-shopping-cart mr-2"></i> Add to Cart
-                                </button>
-                                
-                                <button type="button" class="border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 font-medium py-3 px-6 rounded-md transition flex items-center justify-center">
-                                    <i class="far fa-heart mr-2"></i> Add to Wishlist
-                                </button>
+                                                                <button type="submit" class="bg-primary-600 hover:bg-primary-700 text-white font-medium py-3 px-6 rounded-md transition flex items-center justify-center">                                    <i class="fas fa-shopping-cart mr-2"></i> Add to Cart                                </button>                                                                <button type="button"                                         class="wishlist-button border border-gray-300 bg-white hover:bg-gray-50 font-medium py-3 px-6 rounded-md transition flex items-center justify-center"                                        data-product-id="{{ $product['product_id'] }}">                                    <i class="far fa-heart mr-2"></i> Add to Wishlist                                </button>
                             </div>
                         </form>
                         

@@ -44,11 +44,24 @@ class CartCountMiddleware
             }
             
             $cart = $response->json();
+            
+            // Make sure cart has a cart_id before trying to access it
+            if (!isset($cart['cart_id'])) {
+                Session::put('cart_count', 0);
+                return;
+            }
+            
             $itemsResponse = Http::get($apiBaseUrl . '/carts/' . $cart['cart_id'] . '/items');
             
             if ($itemsResponse->successful()) {
                 $items = $itemsResponse->json();
-                Session::put('cart_count', count($items));
+                
+                // Check if items is an array before counting
+                if (is_array($items)) {
+                    Session::put('cart_count', count($items));
+                } else {
+                    Session::put('cart_count', 0);
+                }
             } else {
                 Session::put('cart_count', 0);
             }

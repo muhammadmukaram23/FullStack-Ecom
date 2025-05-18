@@ -155,7 +155,7 @@ class AdminController extends Controller
                 } 
                 // Last resort - fetch order detail
                 else {
-                    $orderDetailResponse = Http::get($this->apiBaseUrl . '/orders/' . $orderId);
+                    $orderDetailResponse = Http::get($this->apiBaseUrl . '/orders/' . $orderId . '/');
                     if ($orderDetailResponse->successful()) {
                         $orderDetail = $orderDetailResponse->json();
                         $orderDebugInfo[] = "Order #{$orderId}: Fetching order details";
@@ -193,7 +193,7 @@ class AdminController extends Controller
             }
             
             // Fetch users and ensure complete data
-            $usersResponse = Http::get($this->apiBaseUrl . '/users');
+            $usersResponse = Http::get($this->apiBaseUrl . '/users/');
             $users = $usersResponse->json();
             
             // Loop through each user and fetch complete details if needed (but only for dashboard users)
@@ -204,7 +204,7 @@ class AdminController extends Controller
                     // Try to fetch complete user details for this specific user
                     $userId = $user['user_id'] ?? null;
                     if ($userId) {
-                        $userDetailResponse = Http::get($this->apiBaseUrl . '/users/' . $userId);
+                        $userDetailResponse = Http::get($this->apiBaseUrl . '/users/' . $userId . '/');
                         if ($userDetailResponse->successful()) {
                             $userDetail = $userDetailResponse->json();
                             // Merge the detailed user data with existing data
@@ -237,10 +237,10 @@ class AdminController extends Controller
     public function products()
     {
         try {
-            $response = Http::get($this->apiBaseUrl . '/products');
+            $response = Http::get($this->apiBaseUrl . '/products/');
             $products = $response->json();
             
-            $categoriesResponse = Http::get($this->apiBaseUrl . '/categories');
+            $categoriesResponse = Http::get($this->apiBaseUrl . '/categories/');
             $categories = $categoriesResponse->json();
             
             return view('admin.products.index', compact('products', 'categories'));
@@ -252,7 +252,7 @@ class AdminController extends Controller
     public function editProduct($id)
     {
         try {
-            $response = Http::get($this->apiBaseUrl . '/products/' . $id);
+            $response = Http::get($this->apiBaseUrl . '/products/' . $id . '/');
             
             if (!$response->successful()) {
                 return redirect()->route('admin.products')->with('error', 'Product not found');
@@ -260,7 +260,7 @@ class AdminController extends Controller
             
             $product = $response->json();
             
-            $categoriesResponse = Http::get($this->apiBaseUrl . '/categories');
+            $categoriesResponse = Http::get($this->apiBaseUrl . '/categories/');
             $categories = $categoriesResponse->json();
             
             return view('admin.products.edit', compact('product', 'categories'));
@@ -276,12 +276,20 @@ class AdminController extends Controller
             'product_description' => 'required|string',
             'product_price' => 'required|numeric|min:0',
             'category_id' => 'required|integer',
-            'new_images.*' => 'image|mimes:jpeg,png,jpg,gif|max:2048'
+            'new_images.*' => 'image|mimes:jpeg,png,jpg,gif,webp|max:2048'
         ]);
 
         try {
+            // Debug image uploads
+            \Log::info('Update product attempt', [
+                'product_id' => $id,
+                'has_files' => $request->hasFile('new_images'),
+                'files' => $request->allFiles(),
+                'file_count' => $request->hasFile('new_images') ? count($request->file('new_images')) : 0
+            ]);
+            
             // Update product
-            $response = Http::put($this->apiBaseUrl . '/products/' . $id, [
+            $response = Http::put($this->apiBaseUrl . '/products/' . $id . '/', [
                 'product_name' => $validatedData['product_name'],
                 'product_description' => $validatedData['product_description'],
                 'product_price' => $validatedData['product_price'],
@@ -297,25 +305,75 @@ class AdminController extends Controller
             // Handle new image uploads
             $uploadedImages = [];
             if ($request->hasFile('new_images')) {
-                foreach ($request->file('new_images') as $image) {
+                \Log::info('Found new images to upload', ['count' => count($request->file('new_images'))]);
+                
+                foreach ($request->file('new_images') as $index => $image) {
+                    try {
+                        // Log details about each image
+                        \Log::info('Processing image for update', [
+                            'index' => $index,
+                            'original_name' => $image->getClientOriginalName(),
+                            'mime_type' => $image->getMimeType(),
+                            'size' => $image->getSize()
+                        ]);
+                        
                     // Create a unique filename
                     $fileName = time() . '_' . $image->getClientOriginalName();
                     
                     // Store the image in the public directory
-                    $image->move(public_path('uploads/products'), $fileName);
+                        $uploadPath = public_path('uploads/products');
+                        \Log::info('Upload path: ' . $uploadPath);
+                        
+                        // Check if directory exists, if not create it
+                        if (!file_exists($uploadPath)) {
+                            mkdir($uploadPath, 0755, true);
+                            \Log::info('Created directory: ' . $uploadPath);
+                        }
+                        
+                        // Move the file
+                        if ($image->move($uploadPath, $fileName)) {
+                            \Log::info('Image uploaded successfully: ' . $fileName);
+                        } else {
+                            \Log::error('Failed to move uploaded file');
+                            continue;
+                        }
                     
                     // Full URL to the image
-                    $imageUrl = asset('uploads/products/' . $fileName);
+                        $serverUrl = request()->getSchemeAndHttpHost();
+                        $imageUrl = $serverUrl . '/uploads/products/' . $fileName;
+                        \Log::info('Image URL: ' . $imageUrl);
                     
                     // Add product image to the API
-                    $imageResponse = Http::post($this->apiBaseUrl . '/products/' . $id . '/images', [
+                        $imageResponse = Http::post($this->apiBaseUrl . '/products/' . $id . '/images/', [
                         'image_url' => $imageUrl
                     ]);
+                        
+                        // Log the API response for image upload
+                        \Log::info('API response for image upload', [
+                            'status' => $imageResponse->status(),
+                            'body' => $imageResponse->body()
+                        ]);
                     
                     if ($imageResponse->successful()) {
                         $uploadedImages[] = $imageResponse->json();
+                            \Log::info('Image added successfully to product');
+                        } else {
+                            \Log::error('Failed to save image to API', [
+                                'status' => $imageResponse->status(),
+                                'body' => $imageResponse->body()
+                            ]);
+                        }
+                    } catch (\Exception $e) {
+                        \Log::error('Error processing image update: ' . $e->getMessage(), [
+                            'file' => $e->getFile(),
+                            'line' => $e->getLine()
+                        ]);
                     }
                 }
+            } else {
+                \Log::warning('No image files found in request for product update', [
+                    'files' => $request->allFiles()
+                ]);
             }
 
             $message = 'Product updated successfully';
@@ -332,7 +390,7 @@ class AdminController extends Controller
     public function deleteProduct($id)
     {
         try {
-            $response = Http::delete($this->apiBaseUrl . '/products/' . $id);
+            $response = Http::delete($this->apiBaseUrl . '/products/' . $id . '/');
 
             if (!$response->successful()) {
                 return back()->with('error', 'Failed to delete product');
@@ -351,7 +409,7 @@ class AdminController extends Controller
         ]);
 
         try {
-            $response = Http::delete($this->apiBaseUrl . '/products/images/' . $request->image_id);
+            $response = Http::delete($this->apiBaseUrl . '/products/images/' . $request->image_id . '/');
 
             if ($response->successful()) {
                 return response()->json(['success' => true]);
@@ -366,7 +424,7 @@ class AdminController extends Controller
     public function showProductForm()
     {
         try {
-            $categoriesResponse = Http::get($this->apiBaseUrl . '/categories');
+            $categoriesResponse = Http::get($this->apiBaseUrl . '/categories/');
             $categories = $categoriesResponse->json();
             
             return view('admin.products.create', compact('categories'));
@@ -394,7 +452,7 @@ class AdminController extends Controller
             ]);
 
             // Create product
-            $apiUrl = $this->apiBaseUrl . '/products';
+            $apiUrl = $this->apiBaseUrl . '/products/';
             $postData = [
                 'product_name' => $validatedData['product_name'],
                 'product_description' => $validatedData['product_description'],
@@ -471,7 +529,7 @@ class AdminController extends Controller
                         \Log::info('Image URL: ' . $imageUrl);
                         
                         // Add product image to the API
-                        $imageApiUrl = $this->apiBaseUrl . '/products/' . $productId . '/images';
+                        $imageApiUrl = $this->apiBaseUrl . '/products/' . $productId . '/images/';
                         $imageData = ['image_url' => $imageUrl];
                         
                         \Log::info('Sending image data to API', [
@@ -537,7 +595,7 @@ class AdminController extends Controller
     public function categories()
     {
         try {
-            $response = Http::get($this->apiBaseUrl . '/categories');
+            $response = Http::get($this->apiBaseUrl . '/categories/');
             $categories = $response->json();
             
             return view('admin.categories.index', compact('categories'));
@@ -558,7 +616,7 @@ class AdminController extends Controller
         ]);
 
         try {
-            $response = Http::post($this->apiBaseUrl . '/categories', [
+            $response = Http::post($this->apiBaseUrl . '/categories/', [
                 'category_name' => $validatedData['category_name']
             ]);
 
@@ -575,7 +633,7 @@ class AdminController extends Controller
     public function editCategory($id)
     {
         try {
-            $response = Http::get($this->apiBaseUrl . '/categories/' . $id);
+            $response = Http::get($this->apiBaseUrl . '/categories/' . $id . '/');
             
             if (!$response->successful()) {
                 return redirect()->route('admin.categories')->with('error', 'Category not found');
@@ -596,7 +654,7 @@ class AdminController extends Controller
         ]);
 
         try {
-            $response = Http::put($this->apiBaseUrl . '/categories/' . $id, [
+            $response = Http::put($this->apiBaseUrl . '/categories/' . $id . '/', [
                 'category_name' => $validatedData['category_name']
             ]);
 
@@ -613,7 +671,7 @@ class AdminController extends Controller
     public function deleteCategory($id)
     {
         try {
-            $response = Http::delete($this->apiBaseUrl . '/categories/' . $id);
+            $response = Http::delete($this->apiBaseUrl . '/categories/' . $id . '/');
 
             if (!$response->successful()) {
                 return back()->with('error', 'Failed to delete category');
@@ -628,31 +686,31 @@ class AdminController extends Controller
     public function orders()
     {
         try {
-            $response = Http::get($this->apiBaseUrl . '/orders');
+            $response = Http::get($this->apiBaseUrl . '/orders/');
             $orders = $response->json();
             
             // Fetch user details and order items for each order
             foreach ($orders as $key => $order) {
                 // Fetch user details
-                $userResponse = Http::get($this->apiBaseUrl . '/users/' . $order['user_id']);
+                $userResponse = Http::get($this->apiBaseUrl . '/users/' . $order['user_id'] . '/');
                 if ($userResponse->successful()) {
                     $orders[$key]['user_details'] = $userResponse->json();
                 }
                 
                 // Fetch cart and items for preview
-                $cartResponse = Http::get($this->apiBaseUrl . '/carts/' . $order['cart_id']);
+                $cartResponse = Http::get($this->apiBaseUrl . '/carts/' . $order['cart_id'] . '/');
                 if ($cartResponse->successful()) {
                     $cart = $cartResponse->json();
                     
                     // Fetch cart items 
-                    $itemsResponse = Http::get($this->apiBaseUrl . '/carts/' . $order['cart_id'] . '/items');
+                    $itemsResponse = Http::get($this->apiBaseUrl . '/carts/' . $order['cart_id'] . '/items/');
                     if ($itemsResponse->successful()) {
                         $items = $itemsResponse->json();
                         $cart['cart_items'] = $items;
                         
                         // Fetch product details for each item
                         foreach ($cart['cart_items'] as $i => $item) {
-                            $productResponse = Http::get($this->apiBaseUrl . '/products/' . $item['product_id']);
+                            $productResponse = Http::get($this->apiBaseUrl . '/products/' . $item['product_id'] . '/');
                             if ($productResponse->successful()) {
                                 $cart['cart_items'][$i]['product'] = $productResponse->json();
                             }
@@ -672,7 +730,7 @@ class AdminController extends Controller
     public function viewOrder($id)
     {
         try {
-            $response = Http::get($this->apiBaseUrl . '/orders/' . $id);
+            $response = Http::get($this->apiBaseUrl . '/orders/' . $id . '/');
             
             if (!$response->successful()) {
                 return redirect()->route('admin.orders')->with('error', 'Order not found');
@@ -681,13 +739,13 @@ class AdminController extends Controller
             $order = $response->json();
             
             // Fetch user details
-            $userResponse = Http::get($this->apiBaseUrl . '/users/' . $order['user_id']);
+            $userResponse = Http::get($this->apiBaseUrl . '/users/' . $order['user_id'] . '/');
             if ($userResponse->successful()) {
                 $order['user_details'] = $userResponse->json();
             }
             
             // Fetch cart information
-            $cartResponse = Http::get($this->apiBaseUrl . '/carts/' . $order['cart_id']);
+            $cartResponse = Http::get($this->apiBaseUrl . '/carts/' . $order['cart_id'] . '/');
             if ($cartResponse->successful()) {
                 $cart = $cartResponse->json();
                 
@@ -699,7 +757,7 @@ class AdminController extends Controller
                     
                     // Fetch product details for each item
                     foreach ($cart['cart_items'] as $i => $item) {
-                        $productResponse = Http::get($this->apiBaseUrl . '/products/' . $item['product_id']);
+                        $productResponse = Http::get($this->apiBaseUrl . '/products/' . $item['product_id'] . '/');
                         if ($productResponse->successful()) {
                             $product = $productResponse->json();
                             
@@ -728,7 +786,7 @@ class AdminController extends Controller
     public function contacts()
     {
         try {
-            $response = Http::get($this->apiBaseUrl . '/contacts');
+            $response = Http::get($this->apiBaseUrl . '/contacts/');
             $contacts = $response->json();
             
             return view('admin.contacts.index', compact('contacts'));
@@ -741,7 +799,7 @@ class AdminController extends Controller
     {
         try {
             // Get all users from the API
-            $response = Http::get($this->apiBaseUrl . '/users');
+            $response = Http::get($this->apiBaseUrl . '/users/');
             $users = $response->json();
             
             // Loop through each user and fetch complete details if needed
@@ -751,7 +809,7 @@ class AdminController extends Controller
                     // Try to fetch complete user details for this specific user
                     $userId = $user['user_id'] ?? null;
                     if ($userId) {
-                        $userDetailResponse = Http::get($this->apiBaseUrl . '/users/' . $userId);
+                        $userDetailResponse = Http::get($this->apiBaseUrl . '/users/' . $userId . '/');
                         if ($userDetailResponse->successful()) {
                             $userDetail = $userDetailResponse->json();
                             // Merge the detailed user data with existing data
@@ -777,7 +835,7 @@ class AdminController extends Controller
     public function deleteUser($id)
     {
         try {
-            $response = Http::delete($this->apiBaseUrl . '/users/' . $id);
+            $response = Http::delete($this->apiBaseUrl . '/users/' . $id . '/');
 
             if (!$response->successful()) {
                 return back()->with('error', 'Failed to delete user');

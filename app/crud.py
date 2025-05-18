@@ -331,3 +331,42 @@ def get_contact(db: Session, contact_id: int):
 
 def get_contacts(db: Session, skip: int = 0, limit: int = 100):
     return db.query(models.Contact).order_by(models.Contact.created_at.desc()).offset(skip).limit(limit).all()
+
+
+# Wishlist CRUD operations
+def get_wishlist_item(db: Session, user_id: int, product_id: int):
+    return db.query(models.WishlistItem).filter(
+        models.WishlistItem.user_id == user_id,
+        models.WishlistItem.product_id == product_id
+    ).first()
+
+
+def get_wishlist_items_by_user(db: Session, user_id: int):
+    return db.query(models.WishlistItem).filter(models.WishlistItem.user_id == user_id).all()
+
+
+def create_wishlist_item(db: Session, wishlist_item: schemas.WishlistItemCreate):
+    # Check if item already exists in wishlist
+    existing_item = get_wishlist_item(db, wishlist_item.user_id, wishlist_item.product_id)
+    if existing_item:
+        return existing_item
+    
+    # Create new wishlist item
+    db_item = models.WishlistItem(
+        user_id=wishlist_item.user_id,
+        product_id=wishlist_item.product_id
+    )
+    db.add(db_item)
+    db.commit()
+    db.refresh(db_item)
+    return db_item
+
+
+def delete_wishlist_item(db: Session, user_id: int, product_id: int):
+    item = get_wishlist_item(db, user_id, product_id)
+    if not item:
+        return False
+    
+    db.delete(item)
+    db.commit()
+    return True

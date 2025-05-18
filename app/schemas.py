@@ -178,3 +178,22 @@ class Contact(ContactBase):
 
     class Config:
         orm_mode = True
+
+
+# Wishlist Item Schemas
+class WishlistItemBase(BaseModel):
+    user_id: int
+    product_id: int
+
+
+class WishlistItemCreate(WishlistItemBase):
+    pass
+
+
+class WishlistItem(WishlistItemBase):
+    id: int
+    created_at: datetime
+    product: Optional[Product] = None
+
+    class Config:
+        orm_mode = True

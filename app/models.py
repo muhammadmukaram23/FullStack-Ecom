@@ -16,6 +16,7 @@ class User(Base):
     # Relationships
     carts = relationship("Cart", back_populates="user")
     orders = relationship("Order", back_populates="user")
+    wishlist_items = relationship("WishlistItem", back_populates="user")
 
 
 class Category(Base):
@@ -41,6 +42,7 @@ class Product(Base):
     category = relationship("Category", back_populates="products")
     images = relationship("ProductImage", back_populates="product")
     cart_items = relationship("CartItem", back_populates="product")
+    wishlist_items = relationship("WishlistItem", back_populates="product")
 
 
 class ProductImage(Base):
@@ -103,3 +105,16 @@ class Contact(Base):
     subject = Column(String(200))
     message = Column(Text)
     created_at = Column(TIMESTAMP, server_default=func.now())
+
+
+class WishlistItem(Base):
+    __tablename__ = "WishlistItems"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("User.user_id"))
+    product_id = Column(Integer, ForeignKey("Product.product_id"))
+    created_at = Column(TIMESTAMP, server_default=func.now())
+
+    # Relationships
+    user = relationship("User", back_populates="wishlist_items")
+    product = relationship("Product", back_populates="wishlist_items")

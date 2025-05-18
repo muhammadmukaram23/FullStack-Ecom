@@ -248,11 +248,7 @@
                                             <img src="https://via.placeholder.com/300x300" alt="{{ $product['product_name'] }}" class="product-image">
                                         @endif
                                         
-                                        <div class="absolute top-0 right-0 mt-3 mr-3 transform transition hover:scale-110">
-                                            <button class="bg-white text-gray-700 hover:text-primary-600 p-2 rounded-full shadow-md transition">
-                                                <i class="far fa-heart"></i>
-                                            </button>
-                                        </div>
+                                                                                <div class="absolute top-0 right-0 mt-3 mr-3 transform transition hover:scale-110">                                            <button class="wishlist-button bg-white text-gray-700 hover:text-primary-600 p-2 rounded-full shadow-md transition"                                                   data-product-id="{{ $product['product_id'] }}">                                                <i class="far fa-heart"></i>                                            </button>                                        </div>
                                     </div>
                                 </a>
                                 

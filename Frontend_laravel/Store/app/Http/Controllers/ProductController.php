@@ -22,7 +22,7 @@ class ProductController extends Controller
             $products = $response->json();
             
             // Get categories for filtering
-            $categoriesResponse = Http::get($this->apiBaseUrl . '/categories');
+            $categoriesResponse = Http::get($this->apiBaseUrl . '/categories/');
             $categories = $categoriesResponse->json();
             
             // Apply category filter if it exists
@@ -117,7 +117,7 @@ class ProductController extends Controller
             $product = $response->json();
             
             // Get product images
-            $imagesResponse = Http::get($this->apiBaseUrl . '/products/' . $id . '/images');
+            $imagesResponse = Http::get($this->apiBaseUrl . '/products/' . $id . '/images/');
             $images = $imagesResponse->json();
             
             return view('products.show', compact('product', 'images'));
@@ -129,12 +129,12 @@ class ProductController extends Controller
     public function byCategory($categoryId, Request $request)
     {
         try {
-            $response = Http::get($this->apiBaseUrl . '/products/category/' . $categoryId);
+            $response = Http::get($this->apiBaseUrl . '/products/category/' . $categoryId . '/');
             $products = $response->json();
             
             // Fetch images for each product
             foreach ($products as $key => $product) {
-                $imagesResponse = Http::get($this->apiBaseUrl . '/products/' . $product['product_id'] . '/images');
+                $imagesResponse = Http::get($this->apiBaseUrl . '/products/' . $product['product_id'] . '/images/');
                 if ($imagesResponse->successful()) {
                     $products[$key]['images'] = $imagesResponse->json();
                 }
@@ -177,11 +177,11 @@ class ProductController extends Controller
             }
             
             // Get category info
-            $categoryResponse = Http::get($this->apiBaseUrl . '/categories/' . $categoryId);
+            $categoryResponse = Http::get($this->apiBaseUrl . '/categories/' . $categoryId . '/');
             $category = $categoryResponse->json();
             
             // Get all categories for the filter
-            $categoriesResponse = Http::get($this->apiBaseUrl . '/categories');
+            $categoriesResponse = Http::get($this->apiBaseUrl . '/categories/');
             $categories = $categoriesResponse->json();
             
             return view('products.category', compact('products', 'category', 'categories', 'priceRange', 'minPrice', 'maxPrice'));
@@ -220,7 +220,7 @@ class ProductController extends Controller
             });
             
             // Get categories for the sidebar filter
-            $categoriesResponse = Http::get($this->apiBaseUrl . '/categories');
+            $categoriesResponse = Http::get($this->apiBaseUrl . '/categories/');
             $categories = $categoriesResponse->json();
             
             // Reset array keys

@@ -5,7 +5,7 @@ import uvicorn
 
 from app.database import get_db, engine
 from app import models, schemas, crud
-from app.routers import users, products, categories, carts, orders, contacts
+from app.routers import users, products, categories, carts, orders, contacts, wishlists
 
 # Create all tables in the database
 models.Base.metadata.create_all(bind=engine)
@@ -28,6 +28,7 @@ app.include_router(categories.router, prefix="/api/categories", tags=["Categorie
 app.include_router(carts.router, prefix="/api/carts", tags=["Carts"])
 app.include_router(orders.router, prefix="/api/orders", tags=["Orders"])
 app.include_router(contacts.router, prefix="/api/contacts", tags=["Contacts"])
+app.include_router(wishlists.router, tags=["Wishlists"])
 
 
 @app.get("/", tags=["Root"])

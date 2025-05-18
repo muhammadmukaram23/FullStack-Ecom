@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ config('app.name', 'Ecommerce Store') }} - @yield('title', 'Home')</title>
     
     <!-- Tailwind CSS -->
@@ -93,7 +94,27 @@
                 
                 <!-- Desktop Navigation -->
                 <div class="hidden md:flex items-center space-x-8">
-                                        <a href="{{ route('home') }}" class="text-gray-700 hover:text-yellow-600 font-medium {{ request()->routeIs('home') ? 'text-yellow-600 border-b-2 border-yellow-600 pb-1' : '' }}">Home</a>                    <a href="{{ route('products.index') }}" class="text-gray-700 hover:text-yellow-600 font-medium {{ request()->routeIs('products.*') ? 'text-yellow-600 border-b-2 border-yellow-600 pb-1' : '' }}">Shop</a>                    <a href="{{ route('about') }}" class="text-gray-700 hover:text-yellow-600 font-medium {{ request()->routeIs('about') ? 'text-yellow-600 border-b-2 border-yellow-600 pb-1' : '' }}">About</a>                    <a href="{{ route('contact') }}" class="text-gray-700 hover:text-yellow-600 font-medium {{ request()->routeIs('contact') ? 'text-yellow-600 border-b-2 border-yellow-600 pb-1' : '' }}">Contact</a>
+                                        <a href="{{ route('home') }}" class="text-gray-700 hover:text-yellow-600 font-medium {{ request()->routeIs('home') ? 'text-yellow-600 border-b-2 border-yellow-600 pb-1' : '' }}">Home</a>
+                    
+                    <!-- Categories Dropdown -->
+                    <div class="relative group">
+                        <button class="text-gray-700 hover:text-yellow-600 font-medium flex items-center {{ request()->routeIs('products.category') ? 'text-yellow-600 border-b-2 border-yellow-600 pb-1' : '' }}">
+                            Categories <i class="fas fa-chevron-down text-xs ml-1"></i>
+                        </button>
+                        <div class="absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10 transform opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100 transition-all duration-200 origin-top-left">
+                            @if(isset($navCategories) && count($navCategories) > 0)
+                                @foreach($navCategories as $category)
+                                    <a href="{{ route('products.category', $category['category_id']) }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-yellow-600">
+                                        {{ $category['category_name'] }}
+                                    </a>
+                                @endforeach
+                            @else
+                                <div class="block px-4 py-2 text-sm text-gray-500">No categories found</div>
+                            @endif
+                        </div>
+                    </div>
+                    
+                    <a href="{{ route('products.index') }}" class="text-gray-700 hover:text-yellow-600 font-medium {{ request()->routeIs('products.*') && !request()->routeIs('products.category') ? 'text-yellow-600 border-b-2 border-yellow-600 pb-1' : '' }}">Shop</a>                    <a href="{{ route('about') }}" class="text-gray-700 hover:text-yellow-600 font-medium {{ request()->routeIs('about') ? 'text-yellow-600 border-b-2 border-yellow-600 pb-1' : '' }}">About</a>                    <a href="{{ route('contact') }}" class="text-gray-700 hover:text-yellow-600 font-medium {{ request()->routeIs('contact') ? 'text-yellow-600 border-b-2 border-yellow-600 pb-1' : '' }}">Contact</a>
                 </div>
                 
                 <!-- Right Navigation: Cart & Auth -->
@@ -119,6 +140,13 @@
                         </div>
                     </div>
                     
+                    @if(Session::has('is_logged_in') && Session::get('is_logged_in'))
+                    <!-- Wishlist -->
+                    <a href="{{ route('wishlist.index') }}" class="text-gray-700 hover:text-yellow-600 relative p-2 rounded-full hover:bg-gray-100 transition-colors">
+                        <i class="far fa-heart text-xl"></i>
+                    </a>
+                    @endif
+                    
                     <!-- Cart -->
                                         <a href="{{ route('cart.index') }}" class="text-gray-700 hover:text-yellow-600 relative p-2 rounded-full hover:bg-gray-100 transition-colors">                        <i class="fas fa-shopping-cart text-xl"></i>                        <span class="absolute -top-1 -right-1 bg-yellow-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">                            {{ session('cart_count', 0) }}                        </span>                    </a>
                     
@@ -132,6 +160,7 @@
                             
                             <div class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10 hidden group-hover:block border border-gray-100">
                                 <a href="{{ route('orders.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-yellow-600">My Orders</a>
+                                <a href="{{ route('wishlist.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-yellow-600">My Wishlist</a>
                                 
                                 <form method="POST" action="{{ route('logout') }}">
                                     @csrf
@@ -165,13 +194,36 @@
                             placeholder="Search products..." 
                             class="w-full px-4 py-3 border-0 focus:outline-none focus:ring-0"
                         >
-                                                <button type="submit" class="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-3 transition">                            <i class="fas fa-search"></i>                        </button>
+                        <button type="submit" class="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-3 transition">                            <i class="fas fa-search"></i>                        </button>
                     </form>
                 </div>
                 
-                <a href="{{ route('home') }}" class="block py-2 text-gray-700 hover:text-yellow-600 font-medium {{ request()->routeIs('home') ? 'text-yellow-600 bg-yellow-50 pl-2 rounded-lg' : '' }}">Home</a>                <a href="{{ route('products.index') }}" class="block py-2 text-gray-700 hover:text-yellow-600 font-medium {{ request()->routeIs('products.*') ? 'text-yellow-600 bg-yellow-50 pl-2 rounded-lg' : '' }}">Shop</a>                <a href="{{ route('about') }}" class="block py-2 text-gray-700 hover:text-yellow-600 font-medium {{ request()->routeIs('about') ? 'text-yellow-600 bg-yellow-50 pl-2 rounded-lg' : '' }}">About</a>                <a href="{{ route('contact') }}" class="block py-2 text-gray-700 hover:text-yellow-600 font-medium {{ request()->routeIs('contact') ? 'text-yellow-600 bg-yellow-50 pl-2 rounded-lg' : '' }}">Contact</a>
+                <a href="{{ route('home') }}" class="block py-2 text-gray-700 hover:text-yellow-600 font-medium {{ request()->routeIs('home') ? 'text-yellow-600 bg-yellow-50 pl-2 rounded-lg' : '' }}">Home</a>
+                
+                <!-- Categories in Mobile Menu -->
+                <div class="py-2">
+                    <button id="mobile-categories-toggle" class="flex justify-between items-center w-full text-gray-700 hover:text-yellow-600 font-medium {{ request()->routeIs('products.category') ? 'text-yellow-600 bg-yellow-50 pl-2 rounded-lg' : '' }}">
+                        Categories <i class="fas fa-chevron-down text-xs ml-1"></i>
+                    </button>
+                    <div id="mobile-categories-menu" class="hidden mt-2 ml-4 space-y-2">
+                        @if(isset($navCategories) && count($navCategories) > 0)
+                            @foreach($navCategories as $category)
+                                <a href="{{ route('products.category', $category['category_id']) }}" class="block py-2 text-gray-700 hover:text-yellow-600">
+                                    {{ $category['category_name'] }}
+                                </a>
+                            @endforeach
+                        @else
+                            <div class="py-2 text-gray-500">No categories found</div>
+                        @endif
+                    </div>
+                </div>
+                
+                <a href="{{ route('products.index') }}" class="block py-2 text-gray-700 hover:text-yellow-600 font-medium {{ request()->routeIs('products.*') && !request()->routeIs('products.category') ? 'text-yellow-600 bg-yellow-50 pl-2 rounded-lg' : '' }}">Shop</a>
+                <a href="{{ route('about') }}" class="block py-2 text-gray-700 hover:text-yellow-600 font-medium {{ request()->routeIs('about') ? 'text-yellow-600 bg-yellow-50 pl-2 rounded-lg' : '' }}">About</a>
+                <a href="{{ route('contact') }}" class="block py-2 text-gray-700 hover:text-yellow-600 font-medium {{ request()->routeIs('contact') ? 'text-yellow-600 bg-yellow-50 pl-2 rounded-lg' : '' }}">Contact</a>
                 
                 @if(Session::has('is_logged_in') && Session::get('is_logged_in'))
+                    <a href="{{ route('wishlist.index') }}" class="block py-2 text-gray-700 hover:text-yellow-600 font-medium {{ request()->routeIs('wishlist.*') ? 'text-yellow-600 bg-yellow-50 pl-2 rounded-lg' : '' }}">My Wishlist</a>
                     <a href="{{ route('orders.index') }}" class="block py-2 text-gray-700 hover:text-primary-600 font-medium">My Orders</a>
                     
                     <form method="POST" action="{{ route('logout') }}">
@@ -285,50 +337,101 @@
     <!-- JavaScript -->
     <script>
         // Mobile menu toggle
-        document.getElementById('mobile-menu-button').addEventListener('click', function() {
+        document.addEventListener('DOMContentLoaded', function() {
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
             const mobileMenu = document.getElementById('mobile-menu');
-            mobileMenu.classList.toggle('hidden');
-        });
-
-        // Search dropdown toggle (only on desktop)
         const searchToggle = document.getElementById('search-toggle');
         const searchDropdown = document.getElementById('search-dropdown');
-        
+            const mobileCategoriesToggle = document.getElementById('mobile-categories-toggle');
+            const mobileCategoriesMenu = document.getElementById('mobile-categories-menu');
+
+            // Toggle mobile menu
+            if (mobileMenuButton && mobileMenu) {
+                mobileMenuButton.addEventListener('click', function() {
+                    mobileMenu.classList.toggle('hidden');
+                    mobileMenuButton.innerHTML = mobileMenu.classList.contains('hidden') 
+                        ? '<i class="fas fa-bars text-xl"></i>' 
+                        : '<i class="fas fa-times text-xl"></i>';
+                });
+            }
+
+            // Toggle search dropdown
         if (searchToggle && searchDropdown) {
-            searchToggle.addEventListener('click', function(e) {
-                e.stopPropagation();
+                searchToggle.addEventListener('click', function() {
                 searchDropdown.classList.toggle('hidden');
+                });
                 
-                // Auto focus on input when dropdown is shown
-                if (!searchDropdown.classList.contains('hidden')) {
-                    const searchInput = searchDropdown.querySelector('input');
-                    if (searchInput) {
-                        setTimeout(() => {
-                            searchInput.focus();
-                        }, 100);
+                // Close search dropdown when clicking outside
+                document.addEventListener('click', function(e) {
+                    if (!searchToggle.contains(e.target) && !searchDropdown.contains(e.target)) {
+                        searchDropdown.classList.add('hidden');
                     }
-                }
-            });
+                });
+            }
             
-            // Close dropdown when clicking outside
-            document.addEventListener('click', function(e) {
-                if (!searchDropdown.contains(e.target) && !searchToggle.contains(e.target)) {
-                    searchDropdown.classList.add('hidden');
-                }
-            });
-            
-            // Prevent dropdown from closing when clicking inside it
-            searchDropdown.addEventListener('click', function(e) {
-                e.stopPropagation();
-            });
-            
-            // Close dropdown when pressing Escape key
-            document.addEventListener('keydown', function(e) {
-                if (e.key === 'Escape' && !searchDropdown.classList.contains('hidden')) {
-                    searchDropdown.classList.add('hidden');
+            // Toggle mobile categories menu
+            if (mobileCategoriesToggle && mobileCategoriesMenu) {
+                mobileCategoriesToggle.addEventListener('click', function() {
+                    mobileCategoriesMenu.classList.toggle('hidden');
+                    const icon = mobileCategoriesToggle.querySelector('i');
+                    if (icon) {
+                        if (mobileCategoriesMenu.classList.contains('hidden')) {
+                            icon.className = 'fas fa-chevron-down text-xs ml-1';
+                        } else {
+                            icon.className = 'fas fa-chevron-up text-xs ml-1';
+                        }
                 }
             });
         }
+
+        // Handle the wishlist heart buttons with AJAX
+        const wishlistButtons = document.querySelectorAll('.wishlist-button');
+        
+        wishlistButtons.forEach(button => {
+            const productId = button.dataset.productId;
+            
+            // Check if product is in wishlist
+            fetch(`/wishlist/check/${productId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.in_wishlist) {
+                        button.classList.add('text-red-500');
+                        button.innerHTML = '<i class="fas fa-heart mr-2"></i> In Wishlist';
+                    } else {
+                        button.classList.add('text-gray-400');
+                        button.innerHTML = '<i class="far fa-heart mr-2"></i> Add to Wishlist';
+                    }
+                });
+            
+            // Toggle wishlist status with click
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                fetch('/wishlist/add', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    },
+                    body: JSON.stringify({ product_id: productId })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        if (button.classList.contains('text-red-500')) {
+                            button.classList.remove('text-red-500');
+                            button.classList.add('text-gray-400');
+                            button.innerHTML = '<i class="far fa-heart mr-2"></i> Add to Wishlist';
+                        } else {
+                            button.classList.remove('text-gray-400');
+                            button.classList.add('text-red-500');
+                            button.innerHTML = '<i class="fas fa-heart mr-2"></i> In Wishlist';
+                        }
+                    }
+                });
+            });
+        });
+        });
     </script>
     
     @yield('scripts')

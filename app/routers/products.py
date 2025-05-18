@@ -85,6 +85,7 @@ def delete_product(product_id: int, db: Session = Depends(get_db)):
 
 # Product Image endpoints
 @router.post("/{product_id}/images", response_model=schemas.ProductImage)
+@router.post("/{product_id}/images/", response_model=schemas.ProductImage)
 def create_product_image(product_id: int, image: schemas.ProductImageCreate, db: Session = Depends(get_db)):
     # Check if product exists
     db_product = crud.get_product(db, product_id=product_id)
@@ -94,10 +95,12 @@ def create_product_image(product_id: int, image: schemas.ProductImageCreate, db:
             detail="Product not found"
         )
     
+    print(f"Adding image URL: {image.image_url} to product ID: {product_id}")  # Debug print
     return crud.create_product_image(db=db, product_id=product_id, image=image)
 
 
 @router.get("/{product_id}/images", response_model=List[schemas.ProductImage])
+@router.get("/{product_id}/images/", response_model=List[schemas.ProductImage])
 def read_product_images(product_id: int, db: Session = Depends(get_db)):
     # Check if product exists
     db_product = crud.get_product(db, product_id=product_id)
@@ -111,6 +114,7 @@ def read_product_images(product_id: int, db: Session = Depends(get_db)):
 
 
 @router.delete("/images/{image_id}", response_model=schemas.ProductImage)
+@router.delete("/images/{image_id}/", response_model=schemas.ProductImage)
 def delete_product_image(image_id: int, db: Session = Depends(get_db)):
     db_image = crud.delete_product_image(db, image_id=image_id)
     if db_image is None:
